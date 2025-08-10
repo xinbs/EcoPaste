@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSnapshot } from 'valtio'
 import { Badge, Button, Progress, Tooltip, Popover, Space, Typography } from 'antd'
 import {
   CheckCircleOutlined,
@@ -24,6 +25,7 @@ interface SyncStatusProps {
 }
 
 export default function SyncStatus({ className, showDetails = false }: SyncStatusProps) {
+  const syncStoreSnapshot = useSnapshot(syncStore)
   const [isOpen, setIsOpen] = useState(false)
   const [syncProgress, setSyncProgress] = useState(0)
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
@@ -141,7 +143,7 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
   }
 
   const getStatusIcon = () => {
-    if (!syncStore.account.isLoggedIn) {
+    if (!syncStoreSnapshot.account.isLoggedIn) {
       return <DisconnectOutlined style={{ fontSize: '16px', color: '#d9d9d9' }} />
     }
 
@@ -162,7 +164,7 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
   }
 
   const getStatusText = () => {
-    if (!syncStore.account.isLoggedIn) {
+    if (!syncStoreSnapshot.account.isLoggedIn) {
       return '未登录'
     }
 
@@ -181,7 +183,7 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
   }
 
   const getStatusColor = () => {
-    if (!syncStore.account.isLoggedIn) {
+    if (!syncStoreSnapshot.account.isLoggedIn) {
       return 'default'
     }
 
@@ -220,9 +222,9 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
           <div>
             <div>同步状态: {getStatusText()}</div>
             {lastSyncTime && <div>最后同步: {lastSyncTime}</div>}
-            {syncStore.conflicts.length > 0 && (
+            {syncStoreSnapshot.conflicts.length > 0 && (
               <div style={{ color: '#faad14' }}>
-                {syncStore.conflicts.length} 个冲突待解决
+                {syncStoreSnapshot.conflicts.length} 个冲突待解决
               </div>
             )}
           </div>
@@ -313,22 +315,22 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
 
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>设备数量</span>
-                  <span>{syncStore.account.devices.length}</span>
+                  <span>{syncStoreSnapshot.account.devices.length}</span>
                 </div>
 
-                {syncStore.conflicts.length > 0 && (
+                {syncStoreSnapshot.conflicts.length > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>待解决冲突</span>
                     <Space size={4}>
                       <ExclamationCircleOutlined style={{ fontSize: 12, color: '#faad14' }} />
-                      <span>{syncStore.conflicts.length}</span>
+                      <span>{syncStoreSnapshot.conflicts.length}</span>
                     </Space>
                   </div>
                 )}
               </Space>
             </div>
 
-            {syncStore.account.isLoggedIn && (
+            {syncStoreSnapshot.account.isLoggedIn && (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 <Space.Compact style={{ width: '100%' }}>
                   <Button
@@ -371,7 +373,7 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
               </Space>
             )}
 
-            {!syncStore.account.isLoggedIn && (
+            {!syncStoreSnapshot.account.isLoggedIn && (
               <div style={{ textAlign: 'center' }}>
                 <Text type="secondary">请先登录以启用同步功能</Text>
               </div>

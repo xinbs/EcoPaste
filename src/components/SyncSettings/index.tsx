@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSnapshot } from 'valtio'
 import { 
   Card, 
   Button, 
@@ -42,6 +43,7 @@ interface SyncSettingsProps {
 }
 
 export default function SyncSettings({ }: SyncSettingsProps) {
+  const syncStoreSnapshot = useSnapshot(syncStore)
   const [isLoading, setIsLoading] = useState(false)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({
@@ -358,7 +360,7 @@ export default function SyncSettings({ }: SyncSettingsProps) {
     }
   }
 
-  if (!syncStore.account.isLoggedIn) {
+  if (!syncStoreSnapshot.account.isLoggedIn) {
     return (
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ textAlign: 'center' }}>
@@ -499,7 +501,7 @@ export default function SyncSettings({ }: SyncSettingsProps) {
                 {wsStatus.connected ? '已连接' : '未连接'}
               </Text>
             </div>
-            {!wsStatus.connected && syncStore.account.isLoggedIn && (
+            {!wsStatus.connected && syncStoreSnapshot.account.isLoggedIn && (
               <Button 
                 size="small"
                 onClick={handleReconnect}
@@ -529,10 +531,10 @@ export default function SyncSettings({ }: SyncSettingsProps) {
       }>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <Text strong>{syncStore.account.email}</Text>
+            <Text strong>{syncStoreSnapshot.account.email}</Text>
             <br />
             <Text type="secondary">
-              状态: <Badge>{syncStore.account.isLoggedIn ? '已登录' : '未登录'}</Badge>
+              状态: <Badge>{syncStoreSnapshot.account.isLoggedIn ? '已登录' : '未登录'}</Badge>
             </Text>
           </div>
           <Button onClick={handleLogout}>
@@ -556,12 +558,12 @@ export default function SyncSettings({ }: SyncSettingsProps) {
               <Text type="secondary">在多个设备间同步剪贴板数据</Text>
             </div>
             <Switch
-              checked={syncStore.sync.enabled}
+              checked={syncStoreSnapshot.sync.enabled}
               onChange={handleToggleSync}
             />
           </div>
 
-          {syncStore.sync.enabled && (
+          {syncStoreSnapshot.sync.enabled && (
             <>
               <Divider />
               
@@ -572,7 +574,7 @@ export default function SyncSettings({ }: SyncSettingsProps) {
                   <Text type="secondary">自动同步新的剪贴板内容</Text>
                 </div>
                 <Switch
-                  checked={syncStore.sync.autoSync}
+                  checked={syncStoreSnapshot.sync.autoSync}
                   onChange={(checked) => handleConfigChange('autoSync', checked)}
                 />
               </div>
@@ -583,11 +585,11 @@ export default function SyncSettings({ }: SyncSettingsProps) {
                   {['text', 'image', 'file'].map((type) => (
                     <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Switch
-                        checked={syncStore.sync.syncTypes.includes(type)}
+                        checked={syncStoreSnapshot.sync.syncTypes.includes(type)}
                         onChange={(checked) => {
                           const newTypes = checked
-                            ? [...syncStore.sync.syncTypes, type]
-                            : syncStore.sync.syncTypes.filter(t => t !== type)
+                            ? [...syncStoreSnapshot.sync.syncTypes, type]
+                            : syncStoreSnapshot.sync.syncTypes.filter(t => t !== type)
                           handleConfigChange('syncTypes', newTypes)
                         }}
                       />
@@ -632,7 +634,7 @@ export default function SyncSettings({ }: SyncSettingsProps) {
       <Card title="设备管理">
         <div style={{ maxHeight: 200, overflowY: 'auto' }}>
           <Space direction="vertical" style={{ width: '100%' }}>
-              {syncStore.account.devices.map((device: any) => (
+              {syncStoreSnapshot.account.devices.map((device: any) => (
                 <Card key={device.deviceId} size="small">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -666,15 +668,15 @@ export default function SyncSettings({ }: SyncSettingsProps) {
       </Card>
 
       {/* 冲突管理 */}
-       {syncStore.conflicts.length > 0 && (
+       {syncStoreSnapshot.conflicts.length > 0 && (
         <Card title={
           <Space>
             <ExclamationCircleOutlined style={{ color: '#faad14' }} />
-            同步冲突 ({syncStore.conflicts.length})
+            同步冲突 ({syncStoreSnapshot.conflicts.length})
           </Space>
         }>
           <Space direction="vertical" style={{ width: '100%' }}>
-              {syncStore.conflicts.map((conflict) => (
+              {syncStoreSnapshot.conflicts.map((conflict) => (
                 <Card key={conflict.id} size="small">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
