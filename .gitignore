@@ -25,3 +25,4 @@ auto-imports.d.ts
 *.sw?
 vs_buildtools.exe
 rustup-init.exe
+server/data/
