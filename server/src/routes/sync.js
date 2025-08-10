@@ -250,6 +250,77 @@ router.delete('/clear', authenticateToken, async (req, res) => {
   }
 });
 
+// 获取同步状态
+router.get('/status', authenticateToken, async (req, res) => {
+  try {
+    const { userId, deviceId } = req.user;
+
+    // 获取用户基本信息
+    const user = await dbGet(
+      'SELECT id, email, created_at FROM users WHERE id = ?',
+      [userId]
+    );
+
+    // 获取当前设备信息
+    const currentDevice = await dbGet(
+      'SELECT * FROM devices WHERE id = ? AND user_id = ?',
+      [deviceId, userId]
+    );
+
+    // 获取所有设备
+    const devices = await dbAll(
+      'SELECT * FROM devices WHERE user_id = ? ORDER BY last_active DESC',
+      [userId]
+    );
+
+    // 获取最近同步记录
+    const lastSync = await dbGet(
+      'SELECT * FROM sync_records WHERE user_id = ? ORDER BY timestamp DESC LIMIT 1',
+      [userId]
+    );
+
+    // 获取待处理的冲突数量
+    const conflictCount = await dbGet(
+      'SELECT COUNT(*) as count FROM sync_conflicts WHERE user_id = ? AND resolved = 0',
+      [userId]
+    );
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        joinedAt: user.created_at
+      },
+      currentDevice: {
+        id: currentDevice.id,
+        name: currentDevice.name,
+        type: currentDevice.type,
+        lastActive: currentDevice.last_active
+      },
+      devices: devices.map(device => ({
+        id: device.id,
+        name: device.name,
+        type: device.type,
+        isOnline: device.is_online,
+        lastActive: device.last_active,
+        isCurrent: device.id === deviceId
+      })),
+      sync: {
+        lastSyncTime: lastSync?.timestamp || null,
+        status: 'idle', // 可以根据实际情况动态设置
+        conflictCount: conflictCount.count || 0
+      },
+      serverTime: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('获取同步状态失败:', error);
+    res.status(500).json({
+      error: '获取状态失败'
+    });
+  }
+});
+
 // 获取同步统计
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
