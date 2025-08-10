@@ -480,6 +480,13 @@ export class SyncPlugin {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        // 处理401未授权错误
+        if (response.status === 401) {
+          this.authToken = null;
+          localStorage.removeItem('ecopaste-auth-token');
+          this.emit('auth-status', { authenticated: false });
+        }
+        
         const error = await response.json().catch(() => ({ message: response.statusText }));
         throw new Error(error.message || `HTTP ${response.status}`);
       }

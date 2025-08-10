@@ -63,6 +63,10 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
         loadInitialStatus()
       } else {
         // 登出后重置状态
+        syncStore.account.isLoggedIn = false
+        syncStore.account.userId = ''
+        syncStore.account.email = ''
+        syncStore.account.devices = []
         setConnectionStatus('disconnected')
         setSyncStatus('idle')
         setWsConnected(false)

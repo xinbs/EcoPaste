@@ -79,9 +79,24 @@ export default function SyncSettings({ }: SyncSettingsProps) {
       const status = await syncPlugin.checkAuthStatus()
       if (status) {
         syncStore.account.isLoggedIn = true
+        // 获取用户信息
+        const user = await syncPlugin.getCurrentUser()
+        if (user) {
+          syncStore.account.userId = user.id
+          syncStore.account.email = user.email
+        }
+      } else {
+        // 确保在认证失败时重置状态
+        syncStore.account.isLoggedIn = false
+        syncStore.account.userId = ''
+        syncStore.account.email = ''
       }
     } catch (error) {
       console.error('Failed to check auth status:', error)
+      // 发生错误时也要重置状态
+      syncStore.account.isLoggedIn = false
+      syncStore.account.userId = ''
+      syncStore.account.email = ''
     }
   }
 
