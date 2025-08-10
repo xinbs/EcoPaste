@@ -161,10 +161,12 @@ export default function SyncSettings({ }: SyncSettingsProps) {
         password: loginForm.password,
       })
 
+      
       if (response.success) {
         syncStore.account.isLoggedIn = true
-         syncStore.account.email = loginForm.email
-         syncStore.account.userId = response.user?.id || ''
+        syncStore.account.email = loginForm.email
+        syncStore.account.userId = response.user?.id || ''
+        
         message.success('登录成功')
         setLoginForm({ email: '', password: '' })
         await loadDevices()
@@ -215,9 +217,10 @@ export default function SyncSettings({ }: SyncSettingsProps) {
     try {
       await syncPlugin.logout()
       syncStore.account.isLoggedIn = false
-       syncStore.account.email = ''
-       syncStore.account.userId = ''
+      syncStore.account.email = ''
+      syncStore.account.userId = ''
       syncStore.account.devices = []
+      
       message.success('已退出登录')
     } catch (error: any) {
       message.error(error.message || '退出登录失败')

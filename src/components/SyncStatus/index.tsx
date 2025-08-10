@@ -56,6 +56,19 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
       setNetworkOnline(event.online)
     })
 
+    // 监听认证状态变化
+    syncPlugin.on('auth-status', (event: any) => {
+      if (event.authenticated) {
+        // 登录成功后重新加载状态
+        loadInitialStatus()
+      } else {
+        // 登出后重置状态
+        setConnectionStatus('disconnected')
+        setSyncStatus('idle')
+        setWsConnected(false)
+      }
+    })
+
     // 监听同步更新
     syncPlugin.on('sync-update', (event: any) => {
       if (event.type === 'sync_complete') {
