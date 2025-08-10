@@ -8,7 +8,7 @@
 	"version": "0.5.0",
 	"type": "module",
 	"scripts": {
-		"dev": "run-s build:icon dev:vite",
+		"dev": "run-p dev:backend dev:vite",
 		"build": "run-s build:*",
 		"dev:vite": "vite",
 		"build:icon": "tsx scripts/buildIcon.ts",
@@ -19,7 +19,9 @@
 		"prepare": "simple-git-hooks",
 		"release": "release-it",
 		"release-rc": "release-it --preRelease=rc --preReleaseBase=1",
-		"release-beta": "release-it --preRelease=beta --preReleaseBase=1"
+		"release-beta": "release-it --preRelease=beta --preReleaseBase=1",
+		"dev:backend": "npm --prefix server run dev",
+		"dev:all": "run-p dev:backend dev:vite"
 	},
 	"dependencies": {
 		"@ant-design/happy-work-theme": "^1.0.0",

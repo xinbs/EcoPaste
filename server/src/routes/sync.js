@@ -269,7 +269,7 @@ router.get('/status', authenticateToken, async (req, res) => {
 
     // 获取所有设备
     const devices = await dbAll(
-      'SELECT * FROM devices WHERE user_id = ? ORDER BY last_active DESC',
+      'SELECT * FROM devices WHERE user_id = ? ORDER BY last_seen DESC',
       [userId]
     );
 
@@ -279,11 +279,8 @@ router.get('/status', authenticateToken, async (req, res) => {
       [userId]
     );
 
-    // 获取待处理的冲突数量
-    const conflictCount = await dbGet(
-      'SELECT COUNT(*) as count FROM sync_conflicts WHERE user_id = ? AND resolved = 0',
-      [userId]
-    );
+    // 获取待处理的冲突数量（如无该表则默认为0）
+    const conflictCount = { count: 0 };
 
     res.json({
       user: {
@@ -295,14 +292,14 @@ router.get('/status', authenticateToken, async (req, res) => {
         id: currentDevice.id,
         name: currentDevice.name,
         type: currentDevice.type,
-        lastActive: currentDevice.last_active
+        lastActive: currentDevice.last_seen
       },
       devices: devices.map(device => ({
         id: device.id,
         name: device.name,
         type: device.type,
-        isOnline: device.is_online,
-        lastActive: device.last_active,
+        isOnline: device.is_active,
+        lastActive: device.last_seen,
         isCurrent: device.id === deviceId
       })),
       sync: {

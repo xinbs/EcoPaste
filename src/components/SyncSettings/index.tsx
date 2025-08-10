@@ -173,23 +173,23 @@ export default function SyncSettings({ }: SyncSettingsProps) {
 
     setIsLoading(true)
     try {
-      const response = await syncPlugin.login({
+      await syncPlugin.login({
         email: loginForm.email,
         password: loginForm.password,
       })
 
-      
-      if (response.success) {
-        syncStore.account.isLoggedIn = true
-        syncStore.account.email = loginForm.email
-        syncStore.account.userId = response.user?.id || ''
-        
-        message.success('登录成功')
-        setLoginForm({ email: '', password: '' })
-        await loadDevices()
-      } else {
-        message.error(response.message || '登录失败')
-      }
+      // 只要未抛错即视为成功
+      syncStore.account.isLoggedIn = true
+      syncStore.account.email = loginForm.email
+      // 尝试从后端再取一次当前用户，拿到更准确信息
+      const user = await syncPlugin.getCurrentUser()
+      syncStore.account.userId = user?.id || ''
+
+      message.success('登录成功')
+      setLoginForm({ email: '', password: '' })
+
+      // 加载用户设备信息
+      await loadDevices()
     } catch (error: any) {
       message.error(error.message || '登录失败')
     } finally {

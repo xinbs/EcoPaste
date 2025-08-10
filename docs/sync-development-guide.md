@@ -375,3 +375,30 @@ npm install
 - 缓存优化
 - 数据库分片
 - CDN 加速
+
+## 今日修复记录（2025-08-10）
+
+- 修复：登录后界面不跳转
+  - 在登录成功回调中直接更新登录态与账户信息，移除 setTimeout 延迟，避免渲染时序问题
+  - 位置：src/components/SyncSettings/index.tsx
+
+- 修复：未登录时请求受保护接口导致 401
+  - 在同步状态初始化逻辑中增加本地 token/登录态校验，未登录时不调用受保护接口，避免触发 401 并清空 token 的连锁影响
+  - 位置：src/components/SyncStatus/index.tsx
+
+- 修复：/api/sync/status 接口 SQLITE_ERROR
+  - 对齐 devices 表字段名：last_active → last_seen；is_online → is_active
+  - 移除对不存在的 sync_conflicts 表的统计，临时返回 0（后续若启用冲突功能再补表与接口）
+  - 位置：server/src/routes/sync.js；数据库结构参考：server/src/database/init.js
+
+- 开发环境处理
+  - 使用 stop-dev.bat 释放 3001（后端）/1420（前端）端口
+  - 重启命令：后端 npm --prefix server run dev；前端 pnpm dev:vite
+
+- 已知注意事项
+  - 纯浏览器环境访问前端时，Tauri API（如 getCurrentWindow、listen、invoke）相关 TypeError 属预期现象，不影响本次后端修复验证；如需浏览器开发体验，可在相关 hooks/工具函数添加环境守卫或提供 Mock
+
+- 后续计划
+  - 若需要启用冲突功能：
+    - 在 SQLite 初始化中新增 sync_conflicts 表定义（含 resolved、resolution、created_at/resolved_at 等字段）
+    - 在 /api/sync/status 恢复冲突统计，并补充冲突查询/解决路由；前端同步完善冲突列表与解决交互

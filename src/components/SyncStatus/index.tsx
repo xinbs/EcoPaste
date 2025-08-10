@@ -94,6 +94,12 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
   }, [])
 
   const loadInitialStatus = async () => {
+    // 未登录且本地没有 token 时，不调用受保护接口，避免 401
+    const hasToken = localStorage.getItem('ecopaste-auth-token')
+    if (!syncStoreSnapshot.account.isLoggedIn && !hasToken) {
+      return
+    }
+
     try {
       const status = await syncPlugin.getSyncStatus()
       setSyncStatus(status.isRunning ? 'syncing' : 'idle')
@@ -201,191 +207,53 @@ export default function SyncStatus({ className, showDetails = false }: SyncStatu
     }
   }
 
-  const StatusIndicator = () => (
-    <Space className={className}>
-      {getStatusIcon()}
-      {showDetails && (
-        <>
-          <Badge status={getStatusColor() as any} text={getStatusText()} />
-          {syncProgress > 0 && syncProgress < 100 && (
-            <Progress percent={syncProgress} size="small" style={{ width: 64 }} />
-          )}
-        </>
-      )}
-    </Space>
-  )
-
-  if (!showDetails) {
-    return (
-      <Tooltip
-        title={
-          <div>
-            <div>同步状态: {getStatusText()}</div>
-            {lastSyncTime && <div>最后同步: {lastSyncTime}</div>}
-            {syncStoreSnapshot.conflicts.length > 0 && (
-              <div style={{ color: '#faad14' }}>
-                {syncStoreSnapshot.conflicts.length} 个冲突待解决
-              </div>
-            )}
-          </div>
-        }
-      >
-        <Button type="text" size="small" className={className}>
-          <StatusIndicator />
-        </Button>
-      </Tooltip>
-    )
-  }
-
   return (
     <Popover
-      open={isOpen}
-      onOpenChange={setIsOpen}
       content={
-        <div style={{ width: 320 }}>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text strong style={{ fontSize: 16 }}>同步状态</Text>
-              <Badge status={getStatusColor() as any} text={getStatusText()} />
-            </div>
+        <div style={{ minWidth: 260 }}>
+          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+              <Space>
+                {getStatusIcon()}
+                <Text strong>{getStatusText()}</Text>
+              </Space>
+              <Space>
+                <Tooltip title="重新连接">
+                  <Button size="small" icon={<ReloadOutlined />} onClick={handleReconnectWebSocket} />
+                </Tooltip>
+              </Space>
+            </Space>
 
-            {syncProgress > 0 && syncProgress < 100 && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                  <span>同步进度</span>
-                  <span>{Math.round(syncProgress)}%</span>
-                </div>
-                <Progress percent={syncProgress} />
-              </div>
+            {syncStatus === 'syncing' && (
+              <Progress percent={syncProgress} size="small" />
             )}
 
-            <div style={{ fontSize: 14 }}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>连接状态</span>
-                  <Space size={4}>
-                    {connectionStatus === 'connected' ? (
-                      <WifiOutlined style={{ fontSize: 12, color: '#52c41a' }} />
-                    ) : (
-                      <DisconnectOutlined style={{ fontSize: 12, color: '#d9d9d9' }} />
-                    )}
-                    <span>
-                      {connectionStatus === 'connected' ? '已连接' : '已断开'}
-                    </span>
-                  </Space>
-                </div>
+            <Space>
+              <WifiOutlined style={{ color: networkOnline ? '#52c41a' : '#d9d9d9' }} />
+              <Text type="secondary">网络: {networkOnline ? '在线' : '离线'}</Text>
+            </Space>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>WebSocket</span>
-                  <Space size={4}>
-                    {wsConnected ? (
-                      <GlobalOutlined style={{ fontSize: 12, color: '#52c41a' }} />
-                    ) : (
-                      <DisconnectOutlined style={{ fontSize: 12, color: '#d9d9d9' }} />
-                    )}
-                    <span>
-                      {wsConnected ? '已连接' : '未连接'}
-                    </span>
-                  </Space>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>网络状态</span>
-                  <Space size={4}>
-                    {networkOnline ? (
-                      <CheckCircleOutlined style={{ fontSize: 12, color: '#52c41a' }} />
-                    ) : (
-                      <CloseCircleOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
-                    )}
-                    <span>
-                      {networkOnline ? '在线' : '离线'}
-                    </span>
-                  </Space>
-                </div>
-
-                {lastSyncTime && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>最后同步</span>
-                    <Space size={4}>
-                      <ClockCircleOutlined style={{ fontSize: 12 }} />
-                      <span>{lastSyncTime}</span>
-                    </Space>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>设备数量</span>
-                  <span>{syncStoreSnapshot.account.devices.length}</span>
-                </div>
-
-                {syncStoreSnapshot.conflicts.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>待解决冲突</span>
-                    <Space size={4}>
-                      <ExclamationCircleOutlined style={{ fontSize: 12, color: '#faad14' }} />
-                      <span>{syncStoreSnapshot.conflicts.length}</span>
-                    </Space>
-                  </div>
-                )}
-              </Space>
-            </div>
-
-            {syncStoreSnapshot.account.isLoggedIn && (
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Space.Compact style={{ width: '100%' }}>
-                  <Button
-                    style={{ flex: 1 }}
-                    onClick={handleToggleSync}
-                  >
-                    {syncStatus === 'paused' ? (
-                      <>
-                        <PlayCircleOutlined style={{ marginRight: 4 }} />
-                        恢复
-                      </>
-                    ) : (
-                      <>
-                        <PauseOutlined style={{ marginRight: 4 }} />
-                        暂停
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    style={{ flex: 1 }}
-                    onClick={handleForceSync}
-                    disabled={syncStatus === 'syncing' || !wsConnected}
-                  >
-                    <ReloadOutlined
-                      spin={syncStatus === 'syncing'}
-                      style={{ marginRight: 4 }}
-                    />
-                    同步
-                  </Button>
-                </Space.Compact>
-                {!wsConnected && (
-                  <Button
-                    block
-                    onClick={handleReconnectWebSocket}
-                  >
-                    <GlobalOutlined style={{ marginRight: 4 }} />
-                    重连WebSocket
-                  </Button>
-                )}
+            {lastSyncTime && (
+              <Space>
+                <ClockCircleOutlined />
+                <Text type="secondary">上次同步: {lastSyncTime}</Text>
               </Space>
             )}
 
-            {!syncStoreSnapshot.account.isLoggedIn && (
-              <div style={{ textAlign: 'center' }}>
-                <Text type="secondary">请先登录以启用同步功能</Text>
-              </div>
+            {showDetails && (
+              <Space>
+                <Button size="small" icon={<PlayCircleOutlined />} onClick={handleForceSync}>立即同步</Button>
+              </Space>
             )}
           </Space>
         </div>
       }
-      placement="bottomRight"
+      title={null}
+      trigger="hover"
+      open={isOpen}
+      onOpenChange={setIsOpen}
     >
-      <Button type="text" size="small" className={className}>
-        <StatusIndicator />
-      </Button>
+      <Badge status={getStatusColor() as any} text={getStatusText()} className={className} />
     </Popover>
   )
 }

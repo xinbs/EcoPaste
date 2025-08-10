@@ -5,7 +5,7 @@
 	"version": "../package.json",
 	"identifier": "com.ayangweb.EcoPaste",
 	"build": {
-		"beforeDevCommand": "",
+		"beforeDevCommand": "pnpm dev",
 		"devUrl": "http://localhost:1420",
 		"beforeBuildCommand": "npm run build",
 		"frontendDist": "../dist"
