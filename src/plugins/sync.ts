@@ -327,7 +327,7 @@ export class SyncPlugin {
       const response = await this.apiRequest('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({
-          email: credentials.email,
+          username: credentials.email,
           password: credentials.password,
           deviceName: 'EcoPaste Desktop',
           deviceType: 'desktop',
