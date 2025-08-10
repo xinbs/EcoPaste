@@ -1,4 +1,3 @@
-import { platform } from "@tauri-apps/plugin-os";
 import isUrl from "is-url";
 
 /**
@@ -9,19 +8,86 @@ export const isDev = () => {
 };
 
 /**
+ * 获取平台信息（安全版本）
+ */
+const getPlatform = async () => {
+	try {
+		// 检查是否在 Tauri 环境中
+		if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+			const { platform } = await import('@tauri-apps/plugin-os');
+			return platform();
+		}
+		return 'unknown';
+	} catch (error) {
+		console.warn('获取平台信息失败:', error);
+		return 'unknown';
+	}
+};
+
+// 缓存平台信息
+let cachedPlatform: string | null = null;
+
+/**
+ * 同步获取平台信息
+ */
+const getPlatformSync = () => {
+	if (cachedPlatform !== null) {
+		return cachedPlatform;
+	}
+	
+	// 在非 Tauri 环境中返回默认值
+	if (typeof window === 'undefined' || !(window as any).__TAURI__) {
+		cachedPlatform = 'unknown';
+		return cachedPlatform;
+	}
+	
+	// 异步获取平台信息并缓存
+	getPlatform().then(platformInfo => {
+		cachedPlatform = platformInfo;
+	});
+	
+	// 临时返回 unknown，直到异步获取完成
+	return 'unknown';
+};
+
+/**
  * 是否为 macos 系统
  */
-export const isMac = platform() === "macos";
+export const isMac = getPlatformSync() === "macos";
 
 /**
  * 是否为 windows 系统
  */
-export const isWin = platform() === "windows";
+export const isWin = getPlatformSync() === "windows";
+
+/**
+ * 异步获取是否为 macos 系统
+ */
+export const isMacAsync = async () => {
+	const platform = await getPlatform();
+	return platform === "macos";
+};
+
+/**
+ * 异步获取是否为 windows 系统
+ */
+export const isWinAsync = async () => {
+	const platform = await getPlatform();
+	return platform === "windows";
+};
 
 /**
  * 是否为 linux 系统
  */
-export const isLinux = platform() === "linux";
+export const isLinux = getPlatformSync() === "linux";
+
+/**
+ * 异步获取是否为 linux 系统
+ */
+export const isLinuxAsync = async () => {
+	const platform = await getPlatform();
+	return platform === "linux";
+};
 
 /**
  * 是否为链接

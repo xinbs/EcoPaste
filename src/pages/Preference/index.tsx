@@ -11,6 +11,7 @@ import Clipboard from "./components/Clipboard";
 import General from "./components/General";
 import History from "./components/History";
 import Shortcut from "./components/Shortcut";
+import SyncSettings from "@/components/SyncSettings";
 
 const Preference = () => {
 	const { t } = useTranslation();
@@ -77,6 +78,12 @@ const Preference = () => {
 				label: t("preference.menu.title.backup"),
 				icon: "i-lucide:database-backup",
 				content: <Backup />,
+			},
+			{
+				key: "sync",
+				label: "同步设置",
+				icon: "i-lucide:cloud",
+				content: <SyncSettings />,
 			},
 			{
 				key: "about",

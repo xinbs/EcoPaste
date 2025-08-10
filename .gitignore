@@ -23,3 +23,5 @@ auto-imports.d.ts
 *.njsproj
 *.sln
 *.sw?
+vs_buildtools.exe
+rustup-init.exe

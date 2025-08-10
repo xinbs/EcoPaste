@@ -39,9 +39,13 @@ const Main = () => {
 	const state = useReactive<State>(INITIAL_STATE);
 	const audioRef = useRef<AudioRef>(null);
 	const $eventBus = useEventEmitter<string>();
+	const { createTray } = useTray();
 
 	useMount(() => {
 		state.$eventBus = $eventBus;
+
+		// 创建托盘图标
+		createTray();
 
 		// 开启剪贴板监听
 		startListen();

@@ -6,6 +6,7 @@ import { ConfigProvider, theme } from "antd";
 import { isString } from "lodash-es";
 import { RouterProvider } from "react-router-dom";
 import { useSnapshot } from "valtio";
+import SyncStatus from "@/components/SyncStatus";
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -84,7 +85,12 @@ const App = () => {
 			}}
 		>
 			<HappyProvider>
-				{ready && <RouterProvider router={router} />}
+				{ready && (
+					<>
+						<RouterProvider router={router} />
+						<SyncStatus />
+					</>
+				)}
 			</HappyProvider>
 		</ConfigProvider>
 	);

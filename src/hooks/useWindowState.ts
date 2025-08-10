@@ -3,16 +3,27 @@ import type { Event } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { exists, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
-const appWindow = getCurrentWebviewWindow();
-const { label } = appWindow;
+// 安全获取当前窗口
+let appWindow: any = null;
+let label = 'main';
+
+try {
+	if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+		appWindow = getCurrentWebviewWindow();
+		label = appWindow.label;
+	}
+} catch (error) {
+	console.warn('获取 Tauri 窗口失败:', error);
+}
 
 export const useWindowState = () => {
 	const state = useReactive<Partial<PhysicalPosition & PhysicalSize>>({});
 
 	useMount(() => {
-		appWindow.onMoved(onChange);
-
-		appWindow.onResized(onChange);
+		if (appWindow) {
+			appWindow.onMoved(onChange);
+			appWindow.onResized(onChange);
+		}
 	});
 
 	useTauriFocus({
@@ -22,6 +33,8 @@ export const useWindowState = () => {
 	});
 
 	const onChange = async (event: Event<PhysicalPosition | PhysicalSize>) => {
+		if (!appWindow) return;
+		
 		const minimized = await appWindow.isMinimized();
 
 		if (minimized) return;
@@ -52,6 +65,11 @@ export const useWindowState = () => {
 	};
 
 	const restoreState = async () => {
+		if (!appWindow) {
+			console.warn('无法恢复窗口状态：appWindow 为 null');
+			return;
+		}
+
 		const states = await getSavedStates();
 
 		Object.assign(state, states[label]);
