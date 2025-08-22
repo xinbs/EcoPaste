@@ -5,15 +5,15 @@ import { exists, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 
 // 安全获取当前窗口
 let appWindow: any = null;
-let label = 'main';
+let label = "main";
 
 try {
-	if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+	if (typeof window !== "undefined" && (window as any).__TAURI__) {
 		appWindow = getCurrentWebviewWindow();
 		label = appWindow.label;
 	}
 } catch (error) {
-	console.warn('获取 Tauri 窗口失败:', error);
+	console.warn("获取 Tauri 窗口失败:", error);
 }
 
 export const useWindowState = () => {
@@ -34,7 +34,7 @@ export const useWindowState = () => {
 
 	const onChange = async (event: Event<PhysicalPosition | PhysicalSize>) => {
 		if (!appWindow) return;
-		
+
 		const minimized = await appWindow.isMinimized();
 
 		if (minimized) return;
@@ -66,7 +66,7 @@ export const useWindowState = () => {
 
 	const restoreState = async () => {
 		if (!appWindow) {
-			console.warn('无法恢复窗口状态：appWindow 为 null');
+			console.warn("无法恢复窗口状态：appWindow 为 null");
 			return;
 		}
 

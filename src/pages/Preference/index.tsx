@@ -1,3 +1,4 @@
+import SyncSettings from "@/components/SyncSettings";
 import UnoIcon from "@/components/UnoIcon";
 import UpdateApp from "@/components/UpdateApp";
 import { emit } from "@tauri-apps/api/event";
@@ -11,7 +12,6 @@ import Clipboard from "./components/Clipboard";
 import General from "./components/General";
 import History from "./components/History";
 import Shortcut from "./components/Shortcut";
-import SyncSettings from "@/components/SyncSettings";
 
 const Preference = () => {
 	const { t } = useTranslation();

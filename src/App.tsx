@@ -1,3 +1,4 @@
+import SyncStatus from "@/components/SyncStatus";
 import { HappyProvider } from "@ant-design/happy-work-theme";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { error } from "@tauri-apps/plugin-log";
@@ -6,7 +7,6 @@ import { ConfigProvider, theme } from "antd";
 import { isString } from "lodash-es";
 import { RouterProvider } from "react-router-dom";
 import { useSnapshot } from "valtio";
-import SyncStatus from "@/components/SyncStatus";
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 

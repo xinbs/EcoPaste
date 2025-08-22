@@ -14,7 +14,7 @@ export const useTauriFocus = (props: Props) => {
 		const appWindow = getCurrentWebviewWindow();
 
 		if (!appWindow) {
-			console.warn('无法获取 Tauri 窗口，跳过焦点监听');
+			console.warn("无法获取 Tauri 窗口，跳过焦点监听");
 			return;
 		}
 

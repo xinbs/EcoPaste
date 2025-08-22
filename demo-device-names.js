@@ -1,13 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * EcoPaste 增强设备名称格式演示
- * 演示不同用户和设备环境下的设备名称生成
- */
-
-console.log('\n🎯 EcoPaste 增强设备名称格式演示\n');
-console.log('=' .repeat(60));
-
 // 模拟不同的设备名称示例
 const deviceExamples = [
   {
@@ -46,19 +38,12 @@ const deviceExamples = [
 
 // 显示各种示例
 deviceExamples.forEach(category => {
-  console.log(`\n${category.title}`);
-  console.log('-'.repeat(50));
   
-  category.examples.forEach((example, index) => {
-    console.log(`${index + 1}. ${example}`);
+  category.examples.forEach((_example, _index) => {
   });
 });
 
-console.log('\n📊 设备名称组件解析');
-console.log('=' .repeat(60));
-
-const parseExample = 'john.doe@MacBook-Pro-M3 (Mac) [Shanghai-ZH-4K-A7B2C9] - MacBook-Pro';
-console.log(`\n示例: ${parseExample}\n`);
+const _parseExample = 'john.doe@MacBook-Pro-M3 (Mac) [Shanghai-ZH-4K-A7B2C9] - MacBook-Pro';
 
 const components = [
   { label: '👤 用户名', value: 'john.doe', description: '从系统用户目录提取' },
@@ -71,12 +56,8 @@ const components = [
   { label: '🏠 主机名', value: 'MacBook-Pro', description: '网络主机名称' }
 ];
 
-components.forEach(comp => {
-  console.log(`${comp.label}: ${comp.value.padEnd(15)} (${comp.description})`);
+components.forEach(_comp => {
 });
-
-console.log('\n🔍 识别能力对比');
-console.log('=' .repeat(60));
 
 const comparison = [
   {
@@ -92,17 +73,13 @@ const comparison = [
 ];
 
 comparison.forEach(item => {
-  console.log(`\n${item.label}: ${item.value}`);
   if (item.issues) {
-    item.issues.forEach(issue => console.log(`   • ${issue}`));
+    item.issues.forEach(_issue => );
   }
   if (item.benefits) {
-    item.benefits.forEach(benefit => console.log(`   • ${benefit}`));
+    item.benefits.forEach(_benefit => );
   }
 });
-
-console.log('\n🎨 实际应用场景');
-console.log('=' .repeat(60));
 
 const scenarios = [
   {
@@ -132,12 +109,8 @@ const scenarios = [
 ];
 
 scenarios.forEach(scenario => {
-  console.log(`\n${scenario.title}:`);
-  scenario.examples.forEach(example => console.log(`${example}`));
+  scenario.examples.forEach(_example => );
 });
-
-console.log('\n🎯 主要改进点');
-console.log('=' .repeat(60));
 
 const improvements = [
   '✅ 用户身份识别 - 从"通用"到"个人专属"',
@@ -148,19 +121,5 @@ const improvements = [
   '✅ 向后兼容 - 保持API和数据库兼容性'
 ];
 
-improvements.forEach(improvement => {
-  console.log(improvement);
+improvements.forEach(_improvement => {
 });
-
-console.log('\n🚀 成功解决的问题');
-console.log('=' .repeat(60));
-
-console.log('问题: "MacBook-Pro (Mac) 这种太通用了，设备应该包含什么设备，设备用户这些信息，便于区分"');
-console.log('\n✅ 解决方案:');
-console.log('1. 添加用户信息 - 明确设备所属用户');
-console.log('2. 增强设备信息 - 详细的设备型号和规格');
-console.log('3. 环境标识 - 时区、语言、屏幕信息');
-console.log('4. 唯一标识符 - 硬件特征生成的设备ID');
-console.log('5. 网络信息 - 主机名提供网络层面的识别');
-
-console.log('\n🎉 现在每个设备都有了独特的"数字身份证"！\n');

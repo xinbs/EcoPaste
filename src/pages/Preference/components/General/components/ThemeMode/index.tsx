@@ -1,11 +1,11 @@
 import ProSelect from "@/components/ProSelect";
-import type { Theme } from "@/types/store";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { useSnapshot } from "valtio";
-import { useMount } from "ahooks";
-import { useTranslation } from "react-i18next";
 import { useImmediateKey } from "@/hooks/useImmediateKey";
 import { globalStore } from "@/stores/global";
+import type { Theme } from "@/types/store";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useMount } from "ahooks";
+import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 
 interface Option {
 	label: string;
@@ -16,11 +16,11 @@ interface Option {
 let appWindow: any = null;
 
 try {
-	if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+	if (typeof window !== "undefined" && (window as any).__TAURI__) {
 		appWindow = getCurrentWebviewWindow();
 	}
 } catch (error) {
-	console.warn('获取 Tauri 窗口失败:', error);
+	console.warn("获取 Tauri 窗口失败:", error);
 }
 
 const ThemeMode = () => {
@@ -40,7 +40,7 @@ const ThemeMode = () => {
 
 	useImmediateKey(globalStore.appearance, "theme", async (value) => {
 		if (!appWindow) return;
-		
+
 		let nextTheme = value === "auto" ? null : value;
 
 		await appWindow.setTheme(nextTheme);
