@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>EcoPaste 同步功能诊断工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #389e0d;
+        }
+        .status.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #cf1322;
+        }
+        .status.info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #1890ff;
+        }
+        .log {
+            background: #f0f0f0;
+            border: 1px solid #d9d9d9;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1890ff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <h1>🔧 EcoPaste 同步功能诊断工具</h1>
+        
+        <!-- 连接状态 -->
+        <div class=\"section\">
+            <h3>🔗 连接状态检查</h3>
+            <button onclick=\"checkServerStatus()\">检查服务器状态</button>
+            <button onclick=\"checkAuth()\">检查认证状态</button>
+            <div id=\"connectionStatus\" class=\"status info\">点击按钮检查连接状态</div>
+        </div>
+
+        <!-- 用户登录 -->
+        <div class=\"section\">
+            <h3>👤 用户认证</h3>
+            <div class=\"input-group\">
+                <label>邮箱:</label>
+                <input type=\"email\" id=\"email\" value=\"test@example.com\" placeholder=\"输入邮箱\">
+            </div>
+            <div class=\"input-group\">
+                <label>密码:</label>
+                <input type=\"password\" id=\"password\" value=\"test123456\" placeholder=\"输入密码\">
+            </div>
+            <button onclick=\"loginUser()\">登录</button>
+            <button onclick=\"registerUser()\">注册</button>
+            <div id=\"authStatus\" class=\"status info\">请先登录</div>
+        </div>
+
+        <!-- 本地数据统计 -->
+        <div class=\"section\">
+            <h3>💾 本地数据统计</h3>
+            <button onclick=\"checkLocalData()\">检查本地数据</button>
+            <div class=\"stats\" id=\"localStats\">
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"localCount\">-</div>
+                    <div class=\"stat-label\">本地记录数</div>
+                </div>
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"localTypes\">-</div>
+                    <div class=\"stat-label\">数据类型数</div>
+                </div>
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"localFavorites\">-</div>
+                    <div class=\"stat-label\">收藏记录数</div>
+                </div>
+            </div>
+            <div id=\"localDataDetails\" class=\"log\">点击\"检查本地数据\"查看详情</div>
+        </div>
+
+        <!-- 云端数据统计 -->
+        <div class=\"section\">
+            <h3>☁️ 云端数据统计</h3>
+            <button onclick=\"checkCloudData()\">检查云端数据</button>
+            <div class=\"stats\" id=\"cloudStats\">
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"cloudCount\">-</div>
+                    <div class=\"stat-label\">云端记录数</div>
+                </div>
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"cloudSize\">-</div>
+                    <div class=\"stat-label\">总大小(字节)</div>
+                </div>
+                <div class=\"stat-card\">
+                    <div class=\"stat-number\" id=\"cloudDevices\">-</div>
+                    <div class=\"stat-label\">设备数量</div>
+                </div>
+            </div>
+            <div id=\"cloudDataDetails\" class=\"log\">点击\"检查云端数据\"查看详情</div>
+        </div>
+
+        <!-- 同步操作 -->
+        <div class=\"section\">
+            <h3>🔄 同步操作测试</h3>
+            <button onclick=\"testUpload()\">测试上传</button>
+            <button onclick=\"testForceSync()\">测试强制同步</button>
+            <button onclick=\"testSyncStatus()\">获取同步状态</button>
+            <button onclick=\"clearCloudData()\">清空云端数据</button>
+            <div id=\"syncStatus\" class=\"status info\">准备进行同步测试</div>
+        </div>
+
+        <!-- 操作日志 -->
+        <div class=\"section\">
+            <h3>📋 操作日志</h3>
+            <button onclick=\"clearLog()\">清空日志</button>
+            <div id=\"operationLog\" class=\"log\">等待操作...</div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        const SERVER_URL = 'http://localhost:3001';
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('operationLog');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('operationLog').textContent = '';
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        async function checkServerStatus() {
+            try {
+                log('检查服务器状态...');
+                const response = await fetch(`${SERVER_URL}/health`);
+                const data = await response.json();
+                updateStatus('connectionStatus', `服务器运行正常 (v${data.version})`, 'success');
+                log(`服务器状态正常: ${JSON.stringify(data)}`, 'success');
+            } catch (error) {
+                updateStatus('connectionStatus', `服务器连接失败: ${error.message}`, 'error');
+                log(`服务器连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log(`尝试登录用户: ${email}`);
+                const response = await fetch(`${SERVER_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: email,
+                        password: password,
+                        deviceName: 'Diagnostic Tool',
+                        deviceType: 'web',
+                        platform: 'browser'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    authToken = data.token;
+                    updateStatus('authStatus', `登录成功 (用户ID: ${data.user.id})`, 'success');
+                    log(`登录成功: ${JSON.stringify(data.user)}`, 'success');
+                } else {
+                    updateStatus('authStatus', `登录失败: ${data.error}`, 'error');
+                    log(`登录失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('authStatus', `登录错误: ${error.message}`, 'error');
+                log(`登录错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function registerUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log(`尝试注册用户: ${email}`);
+                const response = await fetch(`${SERVER_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: email,
+                        password: password,
+                        email: email,
+                        deviceName: 'Diagnostic Tool',
+                        deviceType: 'web',
+                        platform: 'browser'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    authToken = data.token;
+                    updateStatus('authStatus', `注册并登录成功 (用户ID: ${data.user.id})`, 'success');
+                    log(`注册成功: ${JSON.stringify(data.user)}`, 'success');
+                } else {
+                    updateStatus('authStatus', `注册失败: ${data.error}`, 'error');
+                    log(`注册失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('authStatus', `注册错误: ${error.message}`, 'error');
+                log(`注册错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAuth() {
+            if (!authToken) {
+                updateStatus('connectionStatus', '未登录，请先登录', 'error');
+                return;
+            }
+            
+            try {
+                log('检查认证状态...');
+                const response = await fetch(`${SERVER_URL}/api/sync/stats`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('connectionStatus', '认证有效', 'success');
+                    log(`认证有效，统计数据: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    updateStatus('connectionStatus', '认证已过期，请重新登录', 'error');
+                    authToken = null;
+                }
+            } catch (error) {
+                updateStatus('connectionStatus', `认证检查失败: ${error.message}`, 'error');
+                log(`认证检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        function checkLocalData() {
+            log('检查本地数据...');
+            // 模拟本地数据检查（实际应用中需要通过Tauri API）
+            const mockLocalData = [
+                { id: 'test-1', type: 'text', value: '这是第一条测试文本数据', favorite: false },
+                { id: 'test-2', type: 'text', value: 'https://www.example.com', favorite: false },
+                { id: 'test-3', type: 'text', value: 'test@email.com', favorite: true }
+            ];
+            
+            document.getElementById('localCount').textContent = mockLocalData.length;
+            document.getElementById('localTypes').textContent = new Set(mockLocalData.map(item => item.type)).size;
+            document.getElementById('localFavorites').textContent = mockLocalData.filter(item => item.favorite).length;
+            
+            const details = mockLocalData.map((item, index) => 
+                `${index + 1}. [${item.type}] ${item.value.substring(0, 50)}${item.value.length > 50 ? '...' : ''} ${item.favorite ? '⭐' : ''}`
+            ).join('\n');
+            
+            document.getElementById('localDataDetails').textContent = details;
+            log(`本地数据检查完成，共 ${mockLocalData.length} 条记录`, 'success');
+        }
+
+        async function checkCloudData() {
+            if (!authToken) {
+                log('请先登录', 'error');
+                return;
+            }
+            
+            try {
+                log('检查云端数据...');
+                const response = await fetch(`${SERVER_URL}/api/sync/data`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('cloudCount').textContent = data.total;
+                    document.getElementById('cloudSize').textContent = data.items.reduce((sum, item) => sum + (item.size || 0), 0);
+                    document.getElementById('cloudDevices').textContent = new Set(data.items.map(item => item.device_id)).size;
+                    
+                    const details = data.items.map((item, index) => 
+                        `${index + 1}. [${item.type}] ${item.content.substring(0, 50)}${item.content.length > 50 ? '...' : ''} (${item.device_name})`
+                    ).join('\n');
+                    
+                    document.getElementById('cloudDataDetails').textContent = details || '暂无数据';
+                    log(`云端数据检查完成，共 ${data.total} 条记录`, 'success');
+                } else {
+                    log(`获取云端数据失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`检查云端数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpload() {
+            if (!authToken) {
+                log('请先登录', 'error');
+                return;
+            }
+            
+            const testItem = {
+                id: 'test-upload-' + Date.now(),
+                type: 'text',
+                content: '这是诊断工具的测试数据 - ' + new Date().toLocaleString(),
+                hash: 'diagnostic_' + Date.now(),
+                metadata: {
+                    group: 'text',
+                    subtype: null,
+                    count: 20,
+                    search: '测试数据',
+                    createTime: new Date().toISOString()
+                }
+            };
+            
+            try {
+                log('测试上传功能...');
+                const response = await fetch(`${SERVER_URL}/api/sync/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items: [testItem] })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStatus('syncStatus', `上传成功: ${data.summary.success}/${data.summary.total}`, 'success');
+                    log(`上传测试成功: ${JSON.stringify(data.summary)}`, 'success');
+                } else {
+                    updateStatus('syncStatus', `上传失败: ${data.error}`, 'error');
+                    log(`上传测试失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('syncStatus', `上传错误: ${error.message}`, 'error');
+                log(`上传测试错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testForceSync() {
+            if (!authToken) {
+                log('请先登录', 'error');
+                return;
+            }
+            
+            try {
+                log('测试强制同步...');
+                const response = await fetch(`${SERVER_URL}/api/sync/force-all`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStatus('syncStatus', `强制同步成功，处理 ${data.stats.totalItems} 条数据`, 'success');
+                    log(`强制同步成功: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    updateStatus('syncStatus', `强制同步失败: ${data.error}`, 'error');
+                    log(`强制同步失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('syncStatus', `强制同步错误: ${error.message}`, 'error');
+                log(`强制同步错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSyncStatus() {
+            if (!authToken) {
+                log('请先登录', 'error');
+                return;
+            }
+            
+            try {
+                log('获取同步状态...');
+                const response = await fetch(`${SERVER_URL}/api/sync/status`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStatus('syncStatus', '同步状态获取成功', 'success');
+                    log(`同步状态: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    log(`获取同步状态失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`获取同步状态错误: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearCloudData() {
+            if (!authToken) {
+                log('请先登录', 'error');
+                return;
+            }
+            
+            if (!confirm('确定要清空云端数据吗？此操作不可撤销！')) {
+                return;
+            }
+            
+            try {
+                log('清空云端数据...');
+                const response = await fetch(`${SERVER_URL}/api/sync/clear`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    updateStatus('syncStatus', `云端数据已清空，删除了 ${data.deletedCount} 条记录`, 'success');
+                    log(`云端数据清空成功: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    log(`清空云端数据失败: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`清空云端数据错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动检查服务器状态
+        window.onload = () => {
+            checkServerStatus();
+            log('诊断工具已准备就绪');
+        };
+    </script>
+</body>
+</html>

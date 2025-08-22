@@ -83,14 +83,15 @@ const TABLES = {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       device_id TEXT NOT NULL,
-      item_id TEXT NOT NULL,
+      item_id TEXT,
       action TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'pending',
       error_message TEXT,
+      metadata TEXT,
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
       FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE,
-      FOREIGN KEY (item_id) REFERENCES clipboard_items (id) ON DELETE CASCADE
+      FOREIGN KEY (item_id) REFERENCES clipboard_items (id) ON DELETE SET NULL
     )
   `,
 

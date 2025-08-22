@@ -151,10 +151,10 @@ impl<R: Runtime> EcoSync<R> {
     pub async fn test_connection(&self) -> Result<serde_json::Value> {
         let start_time = std::time::Instant::now();
         
-        // 测试HTTP连接
+        // 测试本地HTTP连接
         let client = reqwest::Client::new();
         let response = client
-            .get("https://api.ecopaste.com/health")
+            .get("http://localhost:3001/health")
             .timeout(std::time::Duration::from_secs(10))
             .send()
             .await?;

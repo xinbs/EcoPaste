@@ -1,5 +1,7 @@
 {
 	"identifier": "com.ayangweb.EcoPaste",
+	"app": {
+	},
 	"bundle": {
 		"externalBin": ["bin/ocr"],
 		"resources": ["assets/tray-mac.ico", "assets/drag-icon.png"]

@@ -27,7 +27,13 @@ const PORT = process.env.PORT || 3001;
 // 中间件配置
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:1420'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:1420',
+    'http://localhost:3000', 
+    'http://127.0.0.1:1420',
+    'file://', // 允许本地文件访问
+    null // 允许null origin的请求
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

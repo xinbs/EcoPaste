@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getDeviceName } from '@/utils/is';
 import type {
   LoginCredentials,
   RegisterData,
@@ -324,12 +325,15 @@ export class SyncPlugin {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      // 自动获取设备名称
+      const deviceName = await getDeviceName();
+      
       const response = await this.apiRequest('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           username: credentials.email,
           password: credentials.password,
-          deviceName: 'EcoPaste Desktop',
+          deviceName: deviceName,
           deviceType: 'desktop',
           platform: navigator.platform
         })
@@ -338,6 +342,11 @@ export class SyncPlugin {
       if (response.token) {
         this.authToken = response.token;
         localStorage.setItem('ecopaste-auth-token', response.token);
+        
+        // 保存设备ID用于WebSocket认证
+        if (response.device && response.device.id) {
+          localStorage.setItem('ecopaste-device-id', response.device.id);
+        }
         
         // 连接WebSocket
         this.connectWebSocket();
@@ -357,13 +366,21 @@ export class SyncPlugin {
    */
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
+      // 验证必填字段
+      if (!data.email || !data.password) {
+        throw new Error('邮箱和密码不能为空');
+      }
+      
+      // 自动获取设备名称
+      const deviceName = await getDeviceName();
+      
       const response = await this.apiRequest('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           username: data.email, // 使用email作为username
           password: data.password,
           email: data.email,
-          deviceName: data.deviceName || 'EcoPaste Desktop',
+          deviceName: deviceName,
           deviceType: 'desktop',
           platform: navigator.platform
         })
@@ -372,6 +389,11 @@ export class SyncPlugin {
       if (response.token) {
         this.authToken = response.token;
         localStorage.setItem('ecopaste-auth-token', response.token);
+        
+        // 保存设备ID用于WebSocket认证
+        if (response.device && response.device.id) {
+          localStorage.setItem('ecopaste-device-id', response.device.id);
+        }
         
         // 连接WebSocket
         this.connectWebSocket();
@@ -402,6 +424,7 @@ export class SyncPlugin {
     } finally {
       this.authToken = null;
       localStorage.removeItem('ecopaste-auth-token');
+      localStorage.removeItem('ecopaste-device-id');
       this.disconnectWebSocket();
       this.emit('auth-status', { authenticated: false });
     }
@@ -482,9 +505,12 @@ export class SyncPlugin {
       if (!response.ok) {
         // 处理401未授权错误
         if (response.status === 401) {
-          this.authToken = null;
-          localStorage.removeItem('ecopaste-auth-token');
-          this.emit('auth-status', { authenticated: false });
+          const isAuthEndpoint = endpoint.includes('/api/auth/login') || endpoint.includes('/api/auth/register') || endpoint.includes('/api/auth/refresh');
+          if (!isAuthEndpoint) {
+            this.authToken = null;
+            localStorage.removeItem('ecopaste-auth-token');
+            this.emit('auth-status', { authenticated: false });
+          }
         }
         
         const error = await response.json().catch(() => ({ message: response.statusText }));
@@ -521,11 +547,21 @@ export class SyncPlugin {
         console.log('WebSocket连接已建立');
         this.reconnectAttempts = 0;
         
-        // 发送认证消息
-        this.sendWebSocketMessage({
-          type: 'AUTH',
-          token: this.authToken
-        });
+        // 发送认证消息（后端期望小写type，且需要data包含token和deviceId）
+        const deviceId = localStorage.getItem('ecopaste-device-id');
+        if (!deviceId) {
+          console.warn('未找到设备ID，跳过WebSocket认证');
+        } else if (!this.authToken) {
+          console.warn('无认证token，跳过WebSocket认证');
+        } else {
+          this.sendWebSocketMessage({
+            type: 'auth',
+            data: {
+              token: this.authToken,
+              deviceId
+            }
+          });
+        }
         
         this.emit('websocket-status', { connected: true });
       };
@@ -592,35 +628,43 @@ export class SyncPlugin {
   private handleWebSocketMessage(message: any) {
     switch (message.type) {
       case 'SUCCESS':
-        if (message.message === 'Authentication successful') {
+      case 'success': {
+        if (message.message === '认证成功' || message.message === 'Authentication successful') {
           console.log('WebSocket认证成功');
         }
         break;
-        
+      }
+      
       case 'ERROR':
+      case 'error': {
         console.error('WebSocket错误:', message.message);
-        if (message.message.includes('Authentication')) {
+        if (typeof message.message === 'string' && message.message.includes('认证')) {
           // 认证失败，清除token
           this.logout();
         }
         break;
-        
+      }
+      
       case 'CLIPBOARD_UPDATE':
-        this.emit('clipboard-update', message.data);
+      case 'clipboard_update':
+        this.emit('clipboard-update', message.data || message);
         break;
-        
+      
       case 'DEVICE_STATUS':
-        this.emit('device-status', message.data);
+      case 'device_status':
+        this.emit('device-status', message.data || message);
         break;
-        
+      
       case 'SYNC':
-        this.emit('sync-update', message.data);
+      case 'sync':
+        this.emit('sync-update', message.data || message);
         break;
-        
+      
       case 'PONG':
+      case 'pong':
         // 心跳响应
         break;
-        
+      
       default:
         console.log('未知WebSocket消息类型:', message.type);
     }
@@ -640,13 +684,12 @@ export class SyncPlugin {
    */
   async registerDevice(device: SyncDevice): Promise<Device> {
     try {
-      const response = await this.apiRequest('/api/devices', {
+      const response = await this.apiRequest('/api/device/register', {
         method: 'POST',
         body: JSON.stringify({
           name: device.name,
-          deviceType: device.deviceType,
-          platform: device.platform,
-          appVersion: device.appVersion
+          type: device.deviceType,
+          platform: device.platform
         })
       });
       return response.device;
@@ -661,7 +704,7 @@ export class SyncPlugin {
    */
   async getDevices(): Promise<Device[]> {
     try {
-      const response = await this.apiRequest('/api/devices');
+      const response = await this.apiRequest('/api/device/list');
       return response.devices || [];
     } catch (error) {
       console.error('获取设备列表失败:', error);
@@ -674,7 +717,7 @@ export class SyncPlugin {
    */
   async removeDevice(deviceId: string): Promise<void> {
     try {
-      await this.apiRequest(`/api/devices/${deviceId}`, {
+      await this.apiRequest(`/api/device/${deviceId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -688,7 +731,7 @@ export class SyncPlugin {
    */
   async updateDevice(deviceId: string, updates: Partial<Device>): Promise<Device> {
     try {
-      const response = await this.apiRequest(`/api/devices/${deviceId}`, {
+      const response = await this.apiRequest(`/api/device/${deviceId}`, {
         method: 'PUT',
         body: JSON.stringify(updates)
       });
@@ -786,18 +829,111 @@ export class SyncPlugin {
   }
 
   /**
+   * 上传剪贴板数据项
+   */
+  async uploadClipboardItems(items: any[]): Promise<void> {
+    try {
+      await this.apiRequest('/api/sync/upload', {
+        method: 'POST',
+        body: JSON.stringify({ items })
+      });
+      
+      this.emit('items-uploaded', { count: items.length });
+    } catch (error) {
+      console.error('上传剪贴板数据失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 强制全量同步
    */
   async forceSyncAll(): Promise<void> {
     try {
+      console.log('🚀 开始强制同步...');
+      
+      // 首先获取本地数据库中的所有剪贴板数据
+      const { selectSQL } = await import('@/database');
+      const localItems = await selectSQL('history', {}) as any[];
+      
+      console.log('📦 强制同步：找到', localItems.length, '条本地剩贴板历史记录');
+      
+      if (localItems.length > 0) {
+        // 转换为同步格式，确保包含所有字段
+        const syncItems = localItems.map((item, index) => {
+          try {
+            // 生成简单的哈希值，避免btoa可能的编码问题
+            const content = item.value || '';
+            const hash = 'local_' + item.id + '_' + content.length + '_' + Date.now() + '_' + index;
+            
+            return {
+              id: item.id,
+              type: item.type || 'text',
+              content: content,
+              hash: hash,
+              metadata: {
+                group: item.group || 'text',
+                subtype: item.subtype,
+                count: item.count || content.length,
+                width: item.width,
+                height: item.height,
+                search: item.search || content,
+                createTime: item.createTime || new Date().toISOString(),
+                favorite: Boolean(item.favorite),
+                note: item.note || null,  // 包含备注字段
+                // 额外信息
+                originalId: item.id,
+                syncedAt: new Date().toISOString(),
+                source: 'local_history'
+              }
+            };
+          } catch (itemError) {
+            console.error('处理单个剩贴板记录失败:', itemError, item);
+            return null;
+          }
+        }).filter(item => item !== null); // 过滤掉失败的项
+        
+        console.log('📤 准备上传', syncItems.length, '条有效剩贴板历史记录');
+        
+        // 显示首几条记录的简要信息
+        syncItems.slice(0, 3).forEach((item, index) => {
+          console.log(`  ${index + 1}. [${item.type}] ${item.content.substring(0, 30)}${item.content.length > 30 ? '...' : ''} ${item.metadata.favorite ? '⭐' : ''}`);
+        });
+        if (syncItems.length > 3) {
+          console.log(`  ... 及其他 ${syncItems.length - 3} 条记录`);
+        }
+        
+        // 上传本地剩贴板历史记录
+        await this.uploadClipboardItems(syncItems);
+        console.log('✅ 剩贴板历史记录上传完成');
+      } else {
+        console.log('ℹ️ 本地没有剩贴板历史记录可同步');
+      }
+      
+      // 然后执行常规强制同步（触发服务端统计）
       await this.apiRequest('/api/sync/force-all', {
         method: 'POST'
       });
       
       this.emit('sync-started', { forced: true, fullSync: true });
+      console.log('✅ 强制同步完成！已同步', localItems.length, '条剩贴板历史记录');
     } catch (error) {
-      console.error('强制全量同步失败:', error);
-      throw error;
+      console.error('❌ 强制全量同步失败:', error);
+      
+      // 提供更详细的错误信息
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('网络连接失败，请检查服务器是否正常运行');
+        } else if (error.message.includes('401')) {
+          throw new Error('认证失败，请重新登录');
+        } else if (error.message.includes('selectSQL')) {
+          throw new Error('无法读取本地剩贴板历史记录，请确保应用正在运行');
+        } else {
+          throw new Error(`同步失败: ${error.message}`);
+        }
+      } else {
+        throw new Error('未知错误，请重试');
+      }
     }
   }
 

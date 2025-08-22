@@ -1,6 +1,7 @@
 import type { HistoryTablePayload } from "@/types/database";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { FC } from "react";
+import { memo } from "react";
 
 interface ImageProps extends Partial<HistoryTablePayload> {
 	className?: string;

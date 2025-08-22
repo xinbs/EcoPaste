@@ -8,7 +8,7 @@ export interface RegisterData {
   email: string;
   password: string;
   confirmPassword: string;
-  deviceName: string;
+  deviceName?: string;  // 现在是可选的，因为会自动获取
   username?: string;
 }
 

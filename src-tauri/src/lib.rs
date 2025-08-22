@@ -1,7 +1,7 @@
 mod core;
 
 use core::{prevent_default, setup};
-use tauri::{generate_context, Builder, Manager, WindowEvent};
+use tauri::{generate_context, Builder, Manager, WindowEvent, menu::{MenuBuilder, MenuItem}};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_eco_window::{show_main_window, MAIN_WINDOW_LABEL, PREFERENCE_WINDOW_LABEL};
 use tauri_plugin_log::{Target, TargetKind};
@@ -15,6 +15,23 @@ pub fn run() {
             let main_window = app.get_webview_window(MAIN_WINDOW_LABEL).unwrap();
 
             let preference_window = app.get_webview_window(PREFERENCE_WINDOW_LABEL).unwrap();
+
+            // 初始化系统托盘菜单
+            let tray_menu = MenuBuilder::new(app)
+                .item(&MenuItem::with_id(app, "show_main", "显示主窗口", true, None::<&str>)?)
+                .item(&MenuItem::with_id(app, "show_preferences", "偏好设置", true, None::<&str>)?)
+                .separator()
+                .item(&MenuItem::with_id(app, "quit", "退出 EcoPaste", true, None::<&str>)?)
+                .build()?;
+
+            // 创建唯一的系统托盘图标
+            use tauri::tray::TrayIconBuilder;
+            let _tray = TrayIconBuilder::with_id("main")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .tooltip("EcoPaste")
+                .build(app)?;
 
             setup::default(&app_handle, main_window.clone(), preference_window.clone());
 
@@ -85,6 +102,37 @@ pub fn run() {
                 api.prevent_close();
             }
             _ => {}
+        })
+        .on_tray_icon_event(|app, event| {
+            match event {
+                tauri::tray::TrayIconEvent::Click {
+                    button: tauri::tray::MouseButton::Left,
+                    button_state: tauri::tray::MouseButtonState::Up,
+                    ..
+                } => {
+                    let main_window = app.get_webview_window(MAIN_WINDOW_LABEL).unwrap();
+                    if main_window.is_visible().unwrap_or(false) {
+                        let _ = main_window.hide();
+                    } else {
+                        show_main_window(app);
+                    }
+                }
+                _ => {}
+            }
+        })
+        .on_menu_event(|app, event| {
+            match event.id().as_ref() {
+                "show_main" => {
+                    show_main_window(app);
+                }
+                "show_preferences" => {
+                    tauri_plugin_eco_window::show_preference_window(app);
+                }
+                "quit" => {
+                    app.exit(0);
+                }
+                _ => {}
+            }
         })
         .build(generate_context!())
         .expect("error while running tauri application");

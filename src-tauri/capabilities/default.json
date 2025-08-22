@@ -19,6 +19,22 @@
 					"args": true,
 					"name": "bin/ocr",
 					"sidecar": true
+				},
+				{
+					"args": true,
+					"name": "system_profiler"
+				},
+				{
+					"args": true,
+					"name": "wmic"
+				},
+				{
+					"args": true,
+					"name": "cat"
+				},
+				{
+					"args": true,
+					"name": "lsb_release"
 				}
 			]
 		},

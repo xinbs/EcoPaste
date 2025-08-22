@@ -7,6 +7,8 @@ import { find, findIndex, isNil, last, range } from "lodash-es";
 import { nanoid } from "nanoid";
 import { createContext } from "react";
 import { useSnapshot } from "valtio";
+import { syncStore } from "@/stores/sync";
+import syncPlugin from "@/plugins/sync";
 import Dock from "./components/Dock";
 import Float from "./components/Float";
 
@@ -51,7 +53,7 @@ const Main = () => {
 		startListen();
 
 		// 监听剪贴板更新
-		onClipboardUpdate((payload) => {
+		onClipboardUpdate(async (payload) => {
 			if (clipboardStore.audio.copy) {
 				audioRef.current?.play();
 			}
@@ -62,6 +64,8 @@ const Main = () => {
 
 			const createTime = formatDate();
 
+			let itemData: HistoryTablePayload;
+
 			if (findItem) {
 				if (!clipboardStore.content.autoSort) return;
 
@@ -71,11 +75,12 @@ const Main = () => {
 
 				const [targetItem] = state.list.splice(index, 1);
 
-				state.list.unshift({ ...targetItem, createTime });
+				itemData = { ...targetItem, createTime };
+				state.list.unshift(itemData);
 
 				updateSQL("history", { id, createTime });
 			} else {
-				const data: HistoryTablePayload = {
+				itemData = {
 					...payload,
 					createTime,
 					id: nanoid(),
@@ -83,10 +88,64 @@ const Main = () => {
 				};
 
 				if (state.group === group || (isNil(state.group) && !state.favorite)) {
-					state.list.unshift(data);
+					state.list.unshift(itemData);
 				}
 
-				insertSQL("history", data);
+				insertSQL("history", itemData);
+			}
+
+			// 🚀 自动同步功能：如果启用同步且启用自动同步，上传到云端
+			try {
+				const { sync } = syncStore;
+				if (sync.enabled && sync.autoSync) {
+					// 检查数据类型是否在同步范围内
+					const shouldSync = (
+						(type === 'text' && sync.syncTypes.includes('text')) ||
+						(type === 'image' && sync.syncTypes.includes('image')) ||
+						(type === 'files' && sync.syncTypes.includes('file'))
+					);
+
+					if (shouldSync) {
+						// 生成内容hash用于去重（使用简单的字符串hash）
+						const hash = 'auto_' + itemData.id + '_' + value.length + '_' + Date.now();
+						
+						// 构造完整的同步数据，包含所有剩贴板历史字段
+						const syncItem = {
+							id: itemData.id,
+							type: type,
+							content: value,
+							hash: hash,
+							metadata: {
+								group: group || 'text',
+								subtype: payload.subtype,
+								count: payload.count || value.length,
+								width: payload.width,
+								height: payload.height,
+								search: payload.search || value,
+								createTime: createTime,
+								favorite: itemData.favorite || false,
+								note: null, // 新创建的项目默认没有备注
+								// 额外信息
+								originalId: itemData.id,
+								syncedAt: new Date().toISOString(),
+								source: 'auto_sync'
+							}
+						};
+
+						// 上传到云端（不阻塞UI）
+						syncPlugin.uploadClipboardItems([syncItem]).then(() => {
+							console.log('✅ 剩贴板历史记录自动同步成功:', type, value.substring(0, 50) + '...');
+							// 更新最后同步时间
+							syncStore.sync.lastSyncTime = new Date().toISOString();
+						}).catch((error) => {
+							console.warn('⚠️ 剩贴板历史记录自动同步失败:', error.message);
+							// 同步失败不影响本地功能
+						});
+					}
+				}
+			} catch (error) {
+				console.warn('自动同步功能异常:', error);
+				// 同步异常不影响本地功能
 			}
 		});
 	});

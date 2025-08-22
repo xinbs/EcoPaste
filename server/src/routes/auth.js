@@ -26,7 +26,8 @@ router.post('/register', async (req, res) => {
       deviceName,
       deviceType,
       platform,
-      hasPassword: !!password
+      hasPassword: !!password,
+      requestBody: JSON.stringify(req.body)
     });
 
     // 验证必填字段
@@ -335,6 +336,36 @@ router.post('/logout', async (req, res) => {
     logger.error('登出失败:', error);
     res.status(500).json({
       error: '登出失败',
+      message: '服务器内部错误'
+    });
+  }
+});
+
+// 获取当前用户信息
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await dbGet(
+      'SELECT id, username, email, created_at FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        error: '用户不存在'
+      });
+    }
+
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      created_at: user.created_at
+    });
+
+  } catch (error) {
+    logger.error('获取用户信息失败:', error);
+    res.status(500).json({
+      error: '获取用户信息失败',
       message: '服务器内部错误'
     });
   }

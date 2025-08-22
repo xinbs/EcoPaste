@@ -10,7 +10,7 @@ interface GroupItem extends Partial<HistoryTablePayload> {
 }
 
 const Group = () => {
-	const { state } = useContext(MainContext);
+	const { state, getList } = useContext(MainContext);
 	const { t } = useTranslation();
 	const [checked, setChecked] = useState("all");
 
@@ -70,6 +70,11 @@ const Group = () => {
 		setChecked(key);
 
 		Object.assign(state, { group, favorite });
+
+		// 切换分组后重新获取列表数据
+		if (typeof getList === "function") {
+			getList();
+		}
 	};
 
 	return (

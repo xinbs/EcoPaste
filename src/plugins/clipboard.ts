@@ -117,37 +117,48 @@ export const readFiles = async (): Promise<ClipboardPayload> => {
  * 读取剪贴板图片
  */
 export const readImage = async (): Promise<ClipboardPayload> => {
-	const { image, ...rest } = await invoke<ReadImage>(COMMAND.READ_IMAGE, {
-		path: getSaveImagePath(),
-	});
+	try {
+		const { image, ...rest } = await invoke<ReadImage>(COMMAND.READ_IMAGE, {
+			path: getSaveImagePath(),
+		});
 
-	const { size: count } = await metadata(image);
+		const { size: count } = await metadata(image);
 
-	let search = "";
+		let search = "";
 
-	if (clipboardStore.content.ocr) {
-		search = await systemOCR(image);
+		if (clipboardStore.content.ocr) {
+			try {
+				search = await systemOCR(image);
 
-		if (isWin) {
-			const { content, qr } = JSON.parse(search) as WindowsOCR;
+				if (isWin) {
+					const { content, qr } = JSON.parse(search) as WindowsOCR;
 
-			if (isEmpty(qr)) {
-				search = content;
-			} else {
-				search = qr[0].content;
+					if (isEmpty(qr)) {
+						search = content;
+					} else {
+						search = qr[0].content;
+					}
+				}
+			} catch (error) {
+				console.warn("图片OCR识别失败，将使用空搜索文本:", error);
+				search = "";
 			}
 		}
+
+		const value = await fullName(image);
+
+		return {
+			...rest,
+			count,
+			value,
+			search,
+			group: "image",
+		};
+	} catch (error) {
+		console.error("读取剪贴板图片失败:", error);
+		// 图片处理失败时，重新抛出错误，让上层处理
+		throw error;
 	}
-
-	const value = await fullName(image);
-
-	return {
-		...rest,
-		count,
-		value,
-		search,
-		group: "image",
-	};
 };
 
 /**
@@ -279,10 +290,17 @@ export const readClipboard = async () => {
 		const filesPayload = await readFiles();
 
 		payload = { ...filesPayload, type: "files" };
-	} else if (has.image && !has.text) {
-		const imagePayload = await readImage();
-
-		payload = { ...imagePayload, type: "image" };
+	} else if (has.image) {
+		// 优先处理图片，无论是否同时包含文本
+		try {
+			const imagePayload = await readImage();
+			payload = { ...imagePayload, type: "image" };
+		} catch (error) {
+			console.error("图片处理失败，降级到文本处理:", error);
+			// 图片处理失败时，降级到文本处理
+			const textPayload = await readText();
+			payload = { ...textPayload, type: "text" };
+		}
 	} else if (!copyPlain && has.html) {
 		const htmlPayload = await readHTML();
 

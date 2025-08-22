@@ -50,7 +50,6 @@ export default function SyncSettings({ }: SyncSettingsProps) {
     email: '',
     password: '',
     confirmPassword: '',
-    deviceName: '',
   })
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false)
   const [selectedConflict, setSelectedConflict] = useState<any>(null)
@@ -74,6 +73,28 @@ export default function SyncSettings({ }: SyncSettingsProps) {
     loadServerConfig()
     // 检查网络状态
     checkNetworkStatus()
+    
+    // 监听WebSocket状态变化
+    const handleWebSocketStatus = (status: { connected: boolean }) => {
+      setWsStatus(status)
+    }
+    
+    // 监听认证状态变化
+    const handleAuthStatus = (status: { authenticated: boolean }) => {
+      if (status.authenticated) {
+        // 认证成功后重新检查状态
+        checkNetworkStatus()
+      }
+    }
+    
+    syncPlugin.on('websocket-status', handleWebSocketStatus)
+    syncPlugin.on('auth-status', handleAuthStatus)
+    
+    // 清理函数
+    return () => {
+      syncPlugin.off('websocket-status', handleWebSocketStatus)
+      syncPlugin.off('auth-status', handleAuthStatus)
+    }
   }, [])
 
   const checkAuthStatus = async () => {
@@ -198,8 +219,8 @@ export default function SyncSettings({ }: SyncSettingsProps) {
   }
 
   const handleRegister = async () => {
-    if (!registerForm.email || !registerForm.password || !registerForm.deviceName) {
-      message.error('请填写所有必填字段')
+    if (!registerForm.email || !registerForm.password) {
+      message.error('请填写邮箱和密码')
       return
     }
 
@@ -214,12 +235,15 @@ export default function SyncSettings({ }: SyncSettingsProps) {
         email: registerForm.email,
         password: registerForm.password,
         confirmPassword: registerForm.confirmPassword,
-        deviceName: registerForm.deviceName,
       })
 
-      if (response.success) {
+      if (response.success !== false) {  // 注册成功的判断
         message.success('注册成功，请登录')
-        setRegisterForm({ email: '', password: '', confirmPassword: '', deviceName: '' })
+        setRegisterForm({ 
+          email: '', 
+          password: '', 
+          confirmPassword: '', 
+        })
       } else {
         message.error(response.message || '注册失败')
       }
@@ -246,8 +270,10 @@ export default function SyncSettings({ }: SyncSettingsProps) {
 
   const handleToggleSync = async (enabled: boolean) => {
     try {
+      setIsLoading(true)
+      
+      // 首先更新配置
       const newConfig = { ...syncStore.sync, enabled }
-      // 转换syncTypes格式
       const configForPlugin = {
         ...newConfig,
         syncTypes: {
@@ -256,34 +282,39 @@ export default function SyncSettings({ }: SyncSettingsProps) {
           file: newConfig.syncTypes.includes('file')
         }
       }
+      
       await syncPlugin.updateSyncConfig(configForPlugin)
       syncStore.sync = newConfig
       
-      if (enabled) {
-        await syncPlugin.startSyncService()
-        message.success('同步已启用')
-      } else {
-        await syncPlugin.stopSyncService()
-        message.success('同步已禁用')
+      // 尝试启动/停止同步服务（如果失败也不影响配置更新）
+      try {
+        if (enabled) {
+          await syncPlugin.startSyncService()
+          message.success('同步已启用')
+        } else {
+          await syncPlugin.stopSyncService()
+          message.success('同步已禁用')
+        }
+      } catch (serviceError: any) {
+        console.warn('同步服务操作失败:', serviceError)
+        // 不显示错误，因为配置已经更新成功
+        message.success(enabled ? '同步配置已启用' : '同步配置已禁用')
       }
+      
     } catch (error: any) {
-      message.error(error.message || '操作失败')
+      console.error('更新同步配置失败:', error)
+      message.error(`配置更新失败: ${error.message || '未知错误'}`)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleConfigChange = async (key: string, value: any) => {
     try {
-      let processedValue = value
-      // 如果是syncTypes，需要转换格式
-      if (key === 'syncTypes' && Array.isArray(value)) {
-        processedValue = {
-          text: value.includes('text'),
-          image: value.includes('image'),
-          file: value.includes('file')
-        }
-      }
-      const newConfig = { ...syncStore.sync, [key]: processedValue }
-      // 转换syncTypes格式用于插件调用
+      // 更新到 store 中的时候保持原始格式
+      const newConfig = { ...syncStore.sync, [key]: value }
+      
+      // 只在调用插件时才转换 syncTypes 格式
       const configForPlugin = {
         ...newConfig,
         syncTypes: Array.isArray(newConfig.syncTypes) ? {
@@ -292,6 +323,7 @@ export default function SyncSettings({ }: SyncSettingsProps) {
           file: newConfig.syncTypes.includes('file')
         } : newConfig.syncTypes
       }
+      
       await syncPlugin.updateSyncConfig(configForPlugin)
       syncStore.sync = newConfig
     } catch (error: any) {
@@ -412,13 +444,6 @@ export default function SyncSettings({ }: SyncSettingsProps) {
                   onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                 />
               </Form.Item>
-              <Form.Item label="设备名称">
-                <Input
-                  placeholder="请输入设备名称"
-                  value={registerForm.deviceName}
-                  onChange={(e) => setRegisterForm({ ...registerForm, deviceName: e.target.value })}
-                />
-              </Form.Item>
               <Form.Item label="密码">
                 <Input.Password
                   placeholder="请输入密码"
@@ -433,6 +458,9 @@ export default function SyncSettings({ }: SyncSettingsProps) {
                   onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
                 />
               </Form.Item>
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '16px' }}>
+                📱 设备名称将自动获取，无需手动输入
+              </Text>
               <Form.Item>
                 <Button 
                   type="primary" 

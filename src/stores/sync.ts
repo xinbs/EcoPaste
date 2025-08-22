@@ -63,7 +63,7 @@ export const syncStore = proxy<SyncStore>({
   sync: {
     enabled: true,
     autoSync: true,
-    syncTypes: ['text', 'image', 'files'],
+    syncTypes: ['text', 'image', 'file'],
     excludeDevices: [],
     lastSyncTime: null,
     status: 'idle',
