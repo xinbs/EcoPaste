@@ -1,14 +1,14 @@
 mod core;
 
 use core::{prevent_default, setup};
-use tauri::{generate_context, Builder, Manager, WindowEvent, menu::{MenuBuilder, MenuItem}};
+use tauri::{generate_context, Builder, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_eco_window::{show_main_window, MAIN_WINDOW_LABEL, PREFERENCE_WINDOW_LABEL};
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = Builder::default()
+        let app = Builder::default()
         .setup(|app| {
             let app_handle = app.handle();
 
@@ -16,22 +16,10 @@ pub fn run() {
 
             let preference_window = app.get_webview_window(PREFERENCE_WINDOW_LABEL).unwrap();
 
-            // 初始化系统托盘菜单
-            let tray_menu = MenuBuilder::new(app)
-                .item(&MenuItem::with_id(app, "show_main", "显示主窗口", true, None::<&str>)?)
-                .item(&MenuItem::with_id(app, "show_preferences", "偏好设置", true, None::<&str>)?)
-                .separator()
-                .item(&MenuItem::with_id(app, "quit", "退出 EcoPaste", true, None::<&str>)?)
-                .build()?;
+            // 注册托盘事件处理（不创建托盘图标，由前端管理）
+            // 托盘图标由前端 useTray Hook 统一管理
 
-            // 创建唯一的系统托盘图标
-            use tauri::tray::TrayIconBuilder;
-            let _tray = TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&tray_menu)
-                .show_menu_on_left_click(false)
-                .tooltip("EcoPaste")
-                .build(app)?;
+            // ... existing code ...
 
             setup::default(&app_handle, main_window.clone(), preference_window.clone());
 
@@ -82,6 +70,8 @@ pub fn run() {
         .plugin(tauri_plugin_locale::init())
         // 打开文件或者链接：https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/opener
         .plugin(tauri_plugin_opener::init())
+        // Shell插件：执行外部命令和二进制文件：https://github.com/tauri-apps/tauri-plugin-shell
+        .plugin(tauri_plugin_shell::init())
         // 禁用 webview 的默认行为：https://github.com/ferreira-tb/tauri-plugin-prevent-default
         .plugin(prevent_default::init())
         // 自定义的窗口管理插件
@@ -102,37 +92,6 @@ pub fn run() {
                 api.prevent_close();
             }
             _ => {}
-        })
-        .on_tray_icon_event(|app, event| {
-            match event {
-                tauri::tray::TrayIconEvent::Click {
-                    button: tauri::tray::MouseButton::Left,
-                    button_state: tauri::tray::MouseButtonState::Up,
-                    ..
-                } => {
-                    let main_window = app.get_webview_window(MAIN_WINDOW_LABEL).unwrap();
-                    if main_window.is_visible().unwrap_or(false) {
-                        let _ = main_window.hide();
-                    } else {
-                        show_main_window(app);
-                    }
-                }
-                _ => {}
-            }
-        })
-        .on_menu_event(|app, event| {
-            match event.id().as_ref() {
-                "show_main" => {
-                    show_main_window(app);
-                }
-                "show_preferences" => {
-                    tauri_plugin_eco_window::show_preference_window(app);
-                }
-                "quit" => {
-                    app.exit(0);
-                }
-                _ => {}
-            }
         })
         .build(generate_context!())
         .expect("error while running tauri application");

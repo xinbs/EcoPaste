@@ -96,8 +96,16 @@ const Main = () => {
 
 			// 🚀 自动同步功能：如果启用同步且启用自动同步，上传到云端
 			try {
-				const { sync } = syncStore;
-				if (sync.enabled && sync.autoSync) {
+				const { sync, account } = syncStore;
+				// 检查是否登录、同步已启用且自动同步已启用
+				if (account.isLoggedIn && sync.enabled && sync.autoSync) {
+					// 额外检查：验证本地是否有有效的认证令牌
+					const hasToken = localStorage.getItem("ecopaste-auth-token");
+					if (!hasToken) {
+						console.debug("📝 本地无认证令牌，跳过自动同步");
+						return;
+					}
+
 					// 检查数据类型是否在同步范围内
 					const shouldSync =
 						(type === "text" && sync.syncTypes.includes("text")) ||
@@ -137,11 +145,31 @@ const Main = () => {
 							.then(() => {
 								// 更新最后同步时间
 								syncStore.sync.lastSyncTime = new Date().toISOString();
+								console.debug("✅ 自动同步成功");
 							})
 							.catch((error) => {
-								console.warn("⚠️ 剩贴板历史记录自动同步失败:", error.message);
+								// 处理认证错误，避免重复401错误
+								if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+									console.warn("⚠️ 同步认证失败，可能需要重新登录");
+									// 清除本地认证状态
+									syncStore.account.isLoggedIn = false;
+									localStorage.removeItem("ecopaste-auth-token");
+								} else {
+									console.warn("⚠️ 剩贴板历史记录自动同步失败:", error.message);
+								}
 								// 同步失败不影响本地功能
 							});
+					} else {
+						console.debug(`📝 数据类型 ${type} 不在同步范围内，跳过自动同步`);
+					}
+				} else {
+					// 未登录或未启用同步时的调试信息
+					if (!account.isLoggedIn) {
+						console.debug("📝 未登录，跳过自动同步");
+					} else if (!sync.enabled) {
+						console.debug("📝 同步功能未启用，跳过自动同步");
+					} else if (!sync.autoSync) {
+						console.debug("📝 自动同步未启用，跳过自动同步");
 					}
 				}
 			} catch (error) {

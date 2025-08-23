@@ -90,4 +90,5 @@ node src/index.js
 
 echo.
 echo [信息] 服务器已停止
+echo 如果需要重新启动，请再次运行此脚本
 pause

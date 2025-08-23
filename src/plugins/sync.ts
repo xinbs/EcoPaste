@@ -53,6 +53,7 @@ export class SyncPlugin {
 	private constructor() {
 		this.initEventListeners();
 		this.loadServerConfig();
+		this.loadAuthToken();
 		this.startHeartbeat();
 	}
 
@@ -74,6 +75,27 @@ export class SyncPlugin {
 			}
 		} catch (error) {
 			console.warn("加载服务端配置失败:", error);
+		}
+	}
+
+	/**
+	 * 加载认证令牌
+	 */
+	private loadAuthToken() {
+		try {
+			const token = localStorage.getItem("ecopaste-auth-token");
+			if (token) {
+				this.authToken = token;
+				console.debug("🔑 已加载认证令牌");
+				// 如果有令牌，尝试连接WebSocket
+				setTimeout(() => {
+					this.connectWebSocket();
+				}, 1000); // 延迟1秒确保其他初始化完成
+			} else {
+				console.debug("🔑 未找到认证令牌");
+			}
+		} catch (error) {
+			console.warn("加载认证令牌失败:", error);
 		}
 	}
 

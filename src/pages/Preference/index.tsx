@@ -19,11 +19,9 @@ const Preference = () => {
 	const [activeKey, setActiveKey] = useState("clipboard");
 	const contentRef = useRef<HTMLElement>(null);
 
-	const { createTray } = useTray();
+	// 移除所有 useTray 相关的代码，托盘由 Main 页面统一管理
 
 	useMount(async () => {
-		createTray();
-
 		const autostart = await isAutostart();
 
 		if (!autostart && !app.silentStart) {

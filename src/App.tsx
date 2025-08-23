@@ -1,4 +1,5 @@
 import SyncStatus from "@/components/SyncStatus";
+import { syncStore } from "@/stores/sync";
 import { HappyProvider } from "@ant-design/happy-work-theme";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { error } from "@tauri-apps/plugin-log";
@@ -12,6 +13,7 @@ const { defaultAlgorithm, darkAlgorithm } = theme;
 
 const App = () => {
 	const { appearance } = useSnapshot(globalStore);
+	const syncStoreSnapshot = useSnapshot(syncStore);
 	const { restoreState } = useWindowState();
 	const [ready, { toggle }] = useBoolean();
 
@@ -88,7 +90,12 @@ const App = () => {
 				{ready && (
 					<>
 						<RouterProvider router={router} />
-						<SyncStatus />
+						{/* 只在已登录时显示同步状态，避免"未登录"黑条 */}
+						{syncStoreSnapshot.account.isLoggedIn && (
+							<SyncStatus 
+								className="fixed bottom-4 right-4 z-50 opacity-80 hover:opacity-100 transition-opacity duration-200" 
+							/>
+						)}
 					</>
 				)}
 			</HappyProvider>

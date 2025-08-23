@@ -410,18 +410,19 @@ export default function SyncSettings({}: SyncSettingsProps) {
 
 	if (!syncStoreSnapshot.account.isLoggedIn) {
 		return (
-			<Space direction="vertical" size="large" style={{ width: "100%" }}>
-				<div style={{ textAlign: "center" }}>
-					<CloudOutlined
-						style={{ fontSize: "48px", color: "#1890ff", marginBottom: "16px" }}
-					/>
-					<Title level={2} style={{ marginBottom: "8px" }}>
-						云端同步
-					</Title>
-					<Text type="secondary">登录账户以启用多设备剪贴板同步</Text>
-				</div>
+			<div className="max-w-md mx-auto">
+				<Space direction="vertical" size="large" style={{ width: "100%" }}>
+					<div style={{ textAlign: "center" }}>
+						<CloudOutlined
+							style={{ fontSize: "48px", color: "#1890ff", marginBottom: "16px" }}
+						/>
+						<Title level={3} style={{ marginBottom: "8px" }}>
+							云端同步
+						</Title>
+						<Text type="secondary">登录账户以启用多设备剪贴板同步</Text>
+					</div>
 
-				<Tabs defaultActiveKey="login" centered>
+					<Tabs defaultActiveKey="login" centered size="small">
 					<TabPane tab="登录" key="login">
 						<Form layout="vertical">
 							<Form.Item label="邮箱">
@@ -516,13 +517,14 @@ export default function SyncSettings({}: SyncSettingsProps) {
 							</Form.Item>
 						</Form>
 					</TabPane>
-				</Tabs>
-			</Space>
+					</Tabs>
+				</Space>
+			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="h-full flex flex-col space-y-4 overflow-hidden">
 			{/* 服务端配置 */}
 			<Card
 				title={
@@ -531,6 +533,7 @@ export default function SyncSettings({}: SyncSettingsProps) {
 						服务端配置
 					</Space>
 				}
+				size="small"
 			>
 				<div
 					style={{
@@ -619,6 +622,7 @@ export default function SyncSettings({}: SyncSettingsProps) {
 						账户信息
 					</Space>
 				}
+				size="small"
 			>
 				<div
 					style={{
@@ -641,15 +645,17 @@ export default function SyncSettings({}: SyncSettingsProps) {
 				</div>
 			</Card>
 
-			{/* 同步设置 */}
-			<Card
-				title={
-					<Space>
-						<SettingOutlined />
-						同步设置
-					</Space>
-				}
-			>
+			{/* 同步设置 - 使用可滚动区域 */}
+			<div className="flex-1 overflow-y-auto">
+				<Card
+					title={
+						<Space>
+							<SettingOutlined />
+							同步设置
+						</Space>
+					}
+					size="small"
+				>
 				<Space direction="vertical" size="large" style={{ width: "100%" }}>
 					<div
 						style={{
@@ -755,10 +761,10 @@ export default function SyncSettings({}: SyncSettingsProps) {
 						</>
 					)}
 				</Space>
-			</Card>
+				</Card>
 
-			{/* 设备管理 */}
-			<Card title="设备管理">
+				{/* 设备管理 */}
+				<Card title="设备管理" size="small" className="mt-4">
 				<div style={{ maxHeight: 200, overflowY: "auto" }}>
 					<Space direction="vertical" style={{ width: "100%" }}>
 						{syncStoreSnapshot.account.devices.map((device: any) => (
@@ -802,18 +808,20 @@ export default function SyncSettings({}: SyncSettingsProps) {
 						))}
 					</Space>
 				</div>
-			</Card>
+				</Card>
 
-			{/* 冲突管理 */}
-			{syncStoreSnapshot.conflicts.length > 0 && (
-				<Card
-					title={
-						<Space>
-							<ExclamationCircleOutlined style={{ color: "#faad14" }} />
-							同步冲突 ({syncStoreSnapshot.conflicts.length})
-						</Space>
-					}
-				>
+				{/* 冲突管理 */}
+				{syncStoreSnapshot.conflicts.length > 0 && (
+					<Card
+						title={
+							<Space>
+								<ExclamationCircleOutlined style={{ color: "#faad14" }} />
+								同步冲突 ({syncStoreSnapshot.conflicts.length})
+							</Space>
+						}
+						size="small"
+						className="mt-4"
+					>
 					<Space direction="vertical" style={{ width: "100%" }}>
 						{syncStoreSnapshot.conflicts.map((conflict) => (
 							<Card key={conflict.id} size="small">
@@ -846,8 +854,9 @@ export default function SyncSettings({}: SyncSettingsProps) {
 							</Card>
 						))}
 					</Space>
-				</Card>
-			)}
+					</Card>
+				)}
+			</div>
 
 			{/* 冲突解决对话框 */}
 			<Modal
