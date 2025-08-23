@@ -69,7 +69,7 @@ export class SyncPlugin {
 	 */
 	private loadServerConfig() {
 		try {
-			const saved = localStorage.getItem("ecopaste-server-config");
+			const saved = localStorage.getItem("xecopaste-server-config");
 			if (saved) {
 				this.serverConfig = { ...DEFAULT_SERVER_CONFIG, ...JSON.parse(saved) };
 			}
@@ -83,7 +83,7 @@ export class SyncPlugin {
 	 */
 	private loadAuthToken() {
 		try {
-			const token = localStorage.getItem("ecopaste-auth-token");
+			const token = localStorage.getItem("xecopaste-auth-token");
 			if (token) {
 				this.authToken = token;
 				console.debug("🔑 已加载认证令牌");
@@ -105,7 +105,7 @@ export class SyncPlugin {
 	private saveServerConfig() {
 		try {
 			localStorage.setItem(
-				"ecopaste-server-config",
+				"xecopaste-server-config",
 				JSON.stringify(this.serverConfig),
 			);
 		} catch (error) {
@@ -385,11 +385,11 @@ export class SyncPlugin {
 
 			if (response.token) {
 				this.authToken = response.token;
-				localStorage.setItem("ecopaste-auth-token", response.token);
+				localStorage.setItem("xecopaste-auth-token", response.token);
 
 				// 保存设备ID用于WebSocket认证
 				if (response.device?.id) {
-					localStorage.setItem("ecopaste-device-id", response.device.id);
+					localStorage.setItem("xecopaste-device-id", response.device.id);
 				}
 
 				// 连接WebSocket
@@ -432,11 +432,11 @@ export class SyncPlugin {
 
 			if (response.token) {
 				this.authToken = response.token;
-				localStorage.setItem("ecopaste-auth-token", response.token);
+				localStorage.setItem("xecopaste-auth-token", response.token);
 
 				// 保存设备ID用于WebSocket认证
 				if (response.device?.id) {
-					localStorage.setItem("ecopaste-device-id", response.device.id);
+					localStorage.setItem("xecopaste-device-id", response.device.id);
 				}
 
 				// 连接WebSocket
@@ -467,8 +467,8 @@ export class SyncPlugin {
 			console.warn("登出请求失败:", error);
 		} finally {
 			this.authToken = null;
-			localStorage.removeItem("ecopaste-auth-token");
-			localStorage.removeItem("ecopaste-device-id");
+			localStorage.removeItem("xecopaste-auth-token");
+			localStorage.removeItem("xecopaste-device-id");
 			this.disconnectWebSocket();
 			this.emit("auth-status", { authenticated: false });
 		}
@@ -479,7 +479,7 @@ export class SyncPlugin {
 	 */
 	async checkAuthStatus(): Promise<boolean> {
 		try {
-			const token = localStorage.getItem("ecopaste-auth-token");
+			const token = localStorage.getItem("xecopaste-auth-token");
 			if (!token) {
 				return false;
 			}
@@ -496,7 +496,7 @@ export class SyncPlugin {
 			return true;
 		} catch (_error) {
 			this.authToken = null;
-			localStorage.removeItem("ecopaste-auth-token");
+			localStorage.removeItem("xecopaste-auth-token");
 			this.emit("auth-status", { authenticated: false });
 			return false;
 		}
@@ -561,7 +561,7 @@ export class SyncPlugin {
 						endpoint.includes("/api/auth/refresh");
 					if (!isAuthEndpoint) {
 						this.authToken = null;
-						localStorage.removeItem("ecopaste-auth-token");
+						localStorage.removeItem("xecopaste-auth-token");
 						this.emit("auth-status", { authenticated: false });
 					}
 				}
@@ -602,7 +602,7 @@ export class SyncPlugin {
 				this.reconnectAttempts = 0;
 
 				// 发送认证消息（后端期望小写type，且需要data包含token和deviceId）
-				const deviceId = localStorage.getItem("ecopaste-device-id");
+				const deviceId = localStorage.getItem("xecopaste-device-id");
 				if (!deviceId) {
 					console.warn("未找到设备ID，跳过WebSocket认证");
 				} else if (!this.authToken) {
